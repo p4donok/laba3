@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Поворот изображения</title>
+    <style>
+        body { font-family: Arial; max-width: 600px; margin: 40px auto; padding: 20px; }
+        .form-group { margin: 15px 0; }
+        input, button { padding: 10px; margin: 5px 0; width: 100%; }
+        .error { color: red; margin: 10px 0; }
+    </style>
+    <script src="https://www.google.com/recaptcha/api.js" async defer></script>
+</head>
+<body>
+    <h2>Поворот изображения (Вариант 6)</h2>
+
+    {% with messages = get_flashed_messages() %}
+        {% if messages %}
+            <div class="error">
+                {% for message in messages %}
+                    <p>{{ message }}</p>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
+
+    <form method="post" enctype="multipart/form-data">
+        <div class="form-group">
+            <label>Выберите изображение:</label>
+            <input type="file" name="image" accept="image/*" required>
+        </div>
+
+        <div class="form-group">
+            <label>Угол поворота (градусы):</label>
+            <input type="number" name="angle" min="-360" max="360" value="45" required>
+        </div>
+
+        <div class="form-group">
+            <div class="g-recaptcha" data-sitekey="{{ site_key }}"></div>
+        </div>
+
+        <button type="submit">Повернуть</button>
+    </form>
+</body>
+</html>
