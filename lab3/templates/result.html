@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Результат обработки</title>
     <style>
-        /* Тот же самый стиль что и выше */
         :root {
             --bg-dark: #0f172a;
             --bg-card: #1e293b;
@@ -15,6 +14,7 @@
             --text: #f1f5f9;
             --text-muted: #94a3b8;
             --border: #475569;
+            --ai-color: #8b5cf6;
         }
         
         * {
@@ -52,6 +52,62 @@
             color: transparent;
         }
         
+        .ai-section {
+            background: rgba(139, 92, 246, 0.1);
+            border-radius: 16px;
+            padding: 1.5rem;
+            margin: 2rem 0;
+            border: 1px solid rgba(139, 92, 246, 0.2);
+        }
+        
+        .ai-title {
+            color: var(--ai-color);
+            font-size: 1.3rem;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .ai-title::before {
+            content: "🤖";
+        }
+        
+        .ai-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+        }
+        
+        .ai-card {
+            background: rgba(30, 41, 59, 0.5);
+            border-radius: 12px;
+            padding: 1.2rem;
+        }
+        
+        .ai-card h4 {
+            color: var(--ai-color);
+            margin-bottom: 0.5rem;
+            font-size: 1.1rem;
+        }
+        
+        .class-name {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin: 0.5rem 0;
+            color: var(--text);
+        }
+        
+        .probability {
+            display: inline-block;
+            background: rgba(139, 92, 246, 0.2);
+            color: var(--ai-color);
+            padding: 0.3rem 0.8rem;
+            border-radius: 20px;
+            font-weight: 600;
+            margin-top: 0.5rem;
+        }
+        
         .result-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
@@ -71,12 +127,14 @@
             margin-bottom: 1rem;
             color: var(--text);
             text-align: center;
+            font-size: 1.3rem;
         }
         
         .image-card img {
             width: 100%;
             border-radius: 10px;
             border: 1px solid var(--border);
+            margin-bottom: 1rem;
         }
         
         .btn-back {
@@ -100,20 +158,57 @@
             background: var(--primary-hover);
             transform: translateY(-1px);
         }
+        
+        .angle-badge {
+            display: inline-block;
+            background: rgba(59, 130, 246, 0.2);
+            color: #60a5fa;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-weight: 600;
+            margin-top: 0.5rem;
+        }
+        
+        @media (max-width: 768px) {
+            .ai-grid, .result-grid {
+                grid-template-columns: 1fr;
+            }
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <header class="header">
             <h1>Результат обработки</h1>
-            <p style="color: var(--text-muted); margin-top: 0.5rem;">Угол поворота: {{ angle }}°</p>
+            <p style="color: var(--text-muted); margin-top: 0.5rem;">
+                Угол поворота: <span class="angle-badge">{{ angle }}°</span>
+            </p>
         </header>
         
+        <!-- Секция с результатами нейронной сети -->
+        <div class="ai-section">
+            <h2 class="ai-title">Анализ нейронной сети (ResNet50)</h2>
+            <div class="ai-grid">
+                <div class="ai-card">
+                    <h4>Оригинальное изображение</h4>
+                    <div class="class-name">{{ original_class }}</div>
+                    <div class="probability">Вероятность: {{ "%.1f"|format(original_prob * 100) }}%</div>
+                </div>
+                
+                <div class="ai-card">
+                    <h4>Повёрнутое изображение</h4>
+                    <div class="class-name">{{ rotated_class }}</div>
+                    <div class="probability">Вероятность: {{ "%.1f"|format(rotated_prob * 100) }}%</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Изображения и гистограммы -->
         <div class="result-grid">
             <div class="image-card">
                 <h3>Оригинальное изображение</h3>
                 <img src="{{ url_for('static', filename=original_img) }}" alt="Original">
-                <div style="text-align: center; margin-top: 1rem;">
+                <div style="text-align: center;">
                     <img src="data:image/png;base64,{{ original_histogram }}" alt="Histogram" style="max-width: 100%;">
                 </div>
             </div>
@@ -121,7 +216,7 @@
             <div class="image-card">
                 <h3>Повёрнутое изображение</h3>
                 <img src="{{ url_for('static', filename=rotated_img) }}" alt="Rotated">
-                <div style="text-align: center; margin-top: 1rem;">
+                <div style="text-align: center;">
                     <img src="data:image/png;base64,{{ rotated_histogram }}" alt="Histogram" style="max-width: 100%;">
                 </div>
             </div>
