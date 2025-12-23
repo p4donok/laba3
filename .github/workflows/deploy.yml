@@ -25,6 +25,7 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
+        cd lab3
         if [ -f requirements.txt ]; then
           pip install -r requirements.txt
         else
@@ -33,20 +34,22 @@ jobs:
     
     - name: Check project structure
       run: |
-        echo "Checking files..."
+        echo "Checking files in lab3..."
+        cd lab3
         ls -la
         echo ""
         echo "Checking templates..."
         if [ -d "templates" ]; then
           ls -la templates/
         else
-          echo "No templates directory"
+          echo "No templates directory found in lab3/"
           exit 1
         fi
     
     - name: Test Python syntax
       run: |
         echo "Testing Python syntax..."
+        cd lab3
         python -m py_compile app.py && echo "app.py compiles successfully"
         
         python -c "
@@ -75,6 +78,7 @@ jobs:
     - name: Test Flask app creation
       run: |
         echo "Testing Flask app creation..."
+        cd lab3
         python -c "
         try:
             import os
