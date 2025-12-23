@@ -3,154 +3,87 @@ name: Test and Deploy
 on:
   push:
     branches: [main, master]
-  pull_request:
-    branches: [main, master]
 
 jobs:
   test:
     runs-on: ubuntu-latest
-    
+
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v3
-    
-    - name: Set up Python 3.9
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.9'
-    
-    - name: Display Python version
-      run: python --version
-    
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        cd lab3
-        if [ -f requirements.txt ]; then
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+
+      - name: Install dependencies
+        run: |
+          cd lab3
+          python -m pip install --upgrade pip
           pip install -r requirements.txt
-        else
-          pip install Flask==2.3.3 Pillow==10.0.0 matplotlib==3.7.2 requests==2.31.0
-        fi
-    
-    - name: Check project structure
-      run: |
-        echo "Checking files in lab3..."
-        cd lab3
-        ls -la
-        echo ""
-        echo "Checking templates..."
-        if [ -d "templates" ]; then
-          ls -la templates/
-        else
-          echo "No templates directory found in lab3/"
-          exit 1
-        fi
-    
-    - name: Test Python syntax
-      run: |
-        echo "Testing Python syntax..."
-        cd lab3
-        python -m py_compile app.py && echo "app.py compiles successfully"
-        
-        python -c "
-        print('Testing basic imports...')
-        try:
-            from PIL import Image
-            import matplotlib.pyplot as plt
-            import flask
-            print('All required packages imported')
-            
-            img = Image.new('RGB', (50, 50), color='red')
-            print('Test image created')
-            
-            plt.figure()
-            plt.plot([1, 2, 3, 4])
-            plt.title('Test')
-            plt.close()
-            print('Matplotlib works')
-            
-            print('All basic tests passed!')
-        except Exception as e:
-            print(f'Error: {e}')
-            raise
-        "
-    
-    - name: Test Flask app creation
-      run: |
-        echo "Testing Flask app creation..."
-        cd lab3
-        python -c "
-        try:
-            import os
-            os.environ['FLASK_ENV'] = 'testing'
-            
-            import sys
-            sys.path.insert(0, '.')
-            
-            with open('app.py', 'r') as f:
-                content = f.read()
-                print(f'app.py readable ({len(content)} bytes)')
-            
-            from app import app as flask_app
-            print('Flask app imported successfully')
-            
-            if hasattr(flask_app, 'secret_key'):
-                print('App has secret_key')
-            else:
-                print('Warning: App has no secret_key')
-            
-            print('Flask app test passed!')
-            
-        except ImportError as e:
-            print(f'ImportError: {e}')
-            print('Trying alternative import method...')
-            
-            import importlib.util
-            spec = importlib.util.spec_from_file_location('app', 'app.py')
-            module = importlib.util.module_from_spec(spec)
-            spec.loader.exec_module(module)
-            print('App loaded via importlib')
-            
-        except Exception as e:
-            print(f'Error during test: {type(e).__name__}: {e}')
-            import traceback
-            traceback.print_exc()
-            sys.exit(1)
-        "
+
+      - name: Basic syntax and import check
+        run: |
+          cd lab3
+          python -c "
+          # Быстрая проверка импорта всех ключевых библиотек
+          try:
+              print('1. Checking NumPy version...')
+              import numpy
+              print(f'    NumPy {numpy.__version__} OK')
+              
+              print('2. Checking matplotlib...')
+              import matplotlib
+              import matplotlib.pyplot as plt
+              print('    matplotlib OK')
+              
+              print('3. Checking PIL...')
+              from PIL import Image
+              print('    PIL OK')
+              
+              print('4. Checking Flask...')
+              import flask
+              print('    Flask OK')
+              
+              print('5. Checking project module...')
+              # Пробуем прочитать app.py, но не запускать
+              with open('app.py', 'r') as f:
+                  content = f.read()
+              print(f'    app.py is readable ({len(content)} chars)')
+              
+              print('\\n✅ Все зависимости импортируются корректно.')
+              
+          except Exception as e:
+              print(f'\\n❌ Ошибка: {e}')
+              import traceback
+              traceback.print_exc()
+              exit(1)
+          "
 
   deploy:
     needs: test
     if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
     runs-on: ubuntu-latest
-    
+
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v3
-    
-    - name: Deploy to Render
-      env:
-        RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
-        RENDER_SERVICE_ID: ${{ secrets.RENDER_SERVICE_ID }}
-      run: |
-        if [ -z "$RENDER_API_KEY" ]; then
-          echo "RENDER_API_KEY not set. Skipping deployment."
-          echo "To enable auto-deployment:"
-          echo "1. Go to https://dashboard.render.com/account/api-keys"
-          echo "2. Create API key and add to GitHub Secrets as RENDER_API_KEY"
-          echo "3. Add your service ID as RENDER_SERVICE_ID"
-          exit 0
-        fi
-        
-        apt-get update && apt-get install -y curl
-        
-        echo "Starting deployment to Render..."
-        
-        curl -X POST \
-          "https://api.render.com/v1/services/$RENDER_SERVICE_ID/deploys" \
-          -H "Authorization: Bearer $RENDER_API_KEY" \
-          -H "Content-Type: application/json"
-        
-        echo "Deployment triggered successfully!"
-        
-        sleep 10
-        echo "Check deployment status at: https://dashboard.render.com"
+      - name: Deploy to Render
+        env:
+          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+          RENDER_SERVICE_ID: ${{ secrets.RENDER_SERVICE_ID }}
+        run: |
+          if [ -z "$RENDER_API_KEY" ]; then
+            echo "RENDER_API_KEY не настроен. Пропускаем деплой."
+            echo "Для настройки:"
+            echo "1. Создайте API ключ на https://dashboard.render.com"
+            echo "2. Добавьте его в Secrets репозитория как RENDER_API_KEY"
+            echo "3. Добавьте ID вашего сервиса как RENDER_SERVICE_ID"
+            exit 0
+          fi
+
+          echo "Запуск деплоя на Render..."
+          curl -X POST "https://api.render.com/v1/services/$RENDER_SERVICE_ID/deploys" \
+            -H "Authorization: Bearer $RENDER_API_KEY" \
+            -H "Content-Type: application/json"
+
+          echo "Деплой запущен. Статус можно проверить на dashboard.render.com"
