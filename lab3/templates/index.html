@@ -307,19 +307,16 @@
                 <div class="g-recaptcha" data-sitekey="{{ site_key }}"></div>
                                 <!-- Блок для вотермарки -->
                 <div class="form-group" style="margin-top: 20px;">
-                <div style="display: flex; align-items: center; gap: 10px;">
-                    <input type="checkbox" 
-                   name="watermark" 
-                   id="watermark"
-                   style="width: 18px; height: 18px; cursor: pointer;">
-                    <label for="watermark" style="margin: 0; color: var(--text); cursor: pointer;">
-            Добавить вотермарку "WATERMARK"
-                    </label>
-                </div>
-                <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 5px; margin-left: 28px;">
-                На изображение будет добавлен текст "WATERMARK" в правом нижнем углу
-                </p>
-                </div>
+    <div style="display: flex; align-items: center; gap: 10px;">
+        <input type="checkbox" 
+               name="watermark" 
+               id="watermark"
+               style="width: 18px; height: 18px; cursor: pointer;">
+        <label for="watermark" style="margin: 0; color: var(--text); cursor: pointer;">
+            Добавить вотермарку
+        </label>
+    </div>
+</div>
                 <!-- Кнопка отправки -->
                 <button type="submit" class="btn">
                     Повернуть изображение
@@ -333,5 +330,6 @@
     </div>
 </body>
 </html>
+
 
 
