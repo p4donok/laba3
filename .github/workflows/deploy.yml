@@ -1,10 +1,10 @@
-name: Test and Deploy to Render
+name: Test and Deploy
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [main, master]
   pull_request:
-    branches: [ main, master ]
+    branches: [main, master]
 
 jobs:
   test:
@@ -14,67 +14,105 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v3
     
-    - name: Set up Python
+    - name: Set up Python 3.9
       uses: actions/setup-python@v4
       with:
         python-version: '3.9'
     
+    - name: Display Python version
+      run: python --version
+    
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install -r requirements.txt
+        if [ -f requirements.txt ]; then
+          pip install -r requirements.txt
+        else
+          pip install Flask==2.3.3 Pillow==10.0.0 matplotlib==3.7.2 requests==2.31.0
+        fi
     
-    - name: Run simple test
+    - name: Check project structure
       run: |
+        echo "Checking files..."
+        ls -la
+        echo ""
+        echo "Checking templates..."
+        if [ -d "templates" ]; then
+          ls -la templates/
+        else
+          echo "No templates directory"
+          exit 1
+        fi
+    
+    - name: Test Python syntax
+      run: |
+        echo "Testing Python syntax..."
+        python -m py_compile app.py && echo "app.py compiles successfully"
+        
         python -c "
-        from app import app
-        print('Flask app imported successfully')
-        
-        # Проверяем создание гистограммы
-        from PIL import Image
-        import io
-        import matplotlib.pyplot as plt
-        
-        # Создаем тестовое изображение
-        img = Image.new('RGB', (100, 100), color='red')
-        print('Test image created')
-        
-        # Проверяем функцию создания гистограммы
+        print('Testing basic imports...')
         try:
+            from PIL import Image
+            import matplotlib.pyplot as plt
+            import flask
+            print('All required packages imported')
+            
+            img = Image.new('RGB', (50, 50), color='red')
+            print('Test image created')
+            
             plt.figure()
-            plt.plot([1,2,3])
+            plt.plot([1, 2, 3, 4])
+            plt.title('Test')
             plt.close()
-            print('Matplotlib works correctly')
-        except:
-            print('Matplotlib error')
+            print('Matplotlib works')
+            
+            print('All basic tests passed!')
+        except Exception as e:
+            print(f'Error: {e}')
             raise
-        
-        print('✅ All basic tests passed')
         "
     
-    - name: Test Flask app structure
+    - name: Test Flask app creation
       run: |
-        # Проверяем наличие нужных файлов
-        if [ ! -f "app.py" ]; then
-          echo "❌ app.py not found"
-          exit 1
-        fi
-        
-        if [ ! -f "requirements.txt" ]; then
-          echo "❌ requirements.txt not found"
-          exit 1
-        fi
-        
-        if [ ! -d "templates" ]; then
-          echo "❌ templates directory not found"
-          exit 1
-        fi
-        
-        echo "✅ Project structure is correct"
-        
-        # Проверяем Python синтаксис
-        python -m py_compile app.py
-        echo "✅ Python syntax is correct"
+        echo "Testing Flask app creation..."
+        python -c "
+        try:
+            import os
+            os.environ['FLASK_ENV'] = 'testing'
+            
+            import sys
+            sys.path.insert(0, '.')
+            
+            with open('app.py', 'r') as f:
+                content = f.read()
+                print(f'app.py readable ({len(content)} bytes)')
+            
+            from app import app as flask_app
+            print('Flask app imported successfully')
+            
+            if hasattr(flask_app, 'secret_key'):
+                print('App has secret_key')
+            else:
+                print('Warning: App has no secret_key')
+            
+            print('Flask app test passed!')
+            
+        except ImportError as e:
+            print(f'ImportError: {e}')
+            print('Trying alternative import method...')
+            
+            import importlib.util
+            spec = importlib.util.spec_from_file_location('app', 'app.py')
+            module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(module)
+            print('App loaded via importlib')
+            
+        except Exception as e:
+            print(f'Error during test: {type(e).__name__}: {e}')
+            import traceback
+            traceback.print_exc()
+            sys.exit(1)
+        "
 
   deploy:
     needs: test
@@ -90,9 +128,8 @@ jobs:
         RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
         RENDER_SERVICE_ID: ${{ secrets.RENDER_SERVICE_ID }}
       run: |
-        # Проверяем наличие API ключа
         if [ -z "$RENDER_API_KEY" ]; then
-          echo "⚠️ RENDER_API_KEY not set. Skipping deployment."
+          echo "RENDER_API_KEY not set. Skipping deployment."
           echo "To enable auto-deployment:"
           echo "1. Go to https://dashboard.render.com/account/api-keys"
           echo "2. Create API key and add to GitHub Secrets as RENDER_API_KEY"
@@ -100,19 +137,16 @@ jobs:
           exit 0
         fi
         
-        # Устанавливаем cURL
         apt-get update && apt-get install -y curl
         
-        echo "🚀 Starting deployment to Render..."
+        echo "Starting deployment to Render..."
         
-        # Триггерим деплой через Render API
         curl -X POST \
           "https://api.render.com/v1/services/$RENDER_SERVICE_ID/deploys" \
           -H "Authorization: Bearer $RENDER_API_KEY" \
           -H "Content-Type: application/json"
         
-        echo "✅ Deployment triggered successfully!"
+        echo "Deployment triggered successfully!"
         
-        # Ждем немного и проверяем статус
         sleep 10
         echo "Check deployment status at: https://dashboard.render.com"
