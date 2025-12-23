@@ -21,7 +21,14 @@ jobs:
         run: |
           cd lab3
           python -m pip install --upgrade pip
-          pip install -r requirements.txt
+          # Устанавливаем зависимости: сначала из файла, если он есть
+          if [ -f "requirements.txt" ]; then
+            echo "Установка зависимостей из requirements.txt..."
+            pip install -r requirements.txt
+          else
+            echo "Файл requirements.txt не найден. Устанавливаем зависимости напрямую..."
+            pip install Flask==2.3.3 Pillow==10.0.0 matplotlib==3.7.1 numpy==1.24.3 requests==2.31.0
+          fi
 
       - name: Basic syntax and import check
         run: |
@@ -47,15 +54,14 @@ jobs:
               print('    Flask OK')
               
               print('5. Checking project module...')
-              # Пробуем прочитать app.py, но не запускать
               with open('app.py', 'r') as f:
                   content = f.read()
               print(f'    app.py is readable ({len(content)} chars)')
               
-              print('\\n✅ Все зависимости импортируются корректно.')
+              print('Все зависимости импортируются корректно.')
               
           except Exception as e:
-              print(f'\\n❌ Ошибка: {e}')
+              print(f'Ошибка: {e}')
               import traceback
               traceback.print_exc()
               exit(1)
@@ -74,10 +80,6 @@ jobs:
         run: |
           if [ -z "$RENDER_API_KEY" ]; then
             echo "RENDER_API_KEY не настроен. Пропускаем деплой."
-            echo "Для настройки:"
-            echo "1. Создайте API ключ на https://dashboard.render.com"
-            echo "2. Добавьте его в Secrets репозитория как RENDER_API_KEY"
-            echo "3. Добавьте ID вашего сервиса как RENDER_SERVICE_ID"
             exit 0
           fi
 
@@ -86,4 +88,4 @@ jobs:
             -H "Authorization: Bearer $RENDER_API_KEY" \
             -H "Content-Type: application/json"
 
-          echo "Деплой запущен. Статус можно проверить на dashboard.render.com"
+          echo "Деплой запущен."
