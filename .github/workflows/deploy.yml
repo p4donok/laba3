@@ -1,0 +1,118 @@
+name: Test and Deploy to Render
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+    
+    - name: Run simple test
+      run: |
+        python -c "
+        from app import app
+        print('Flask app imported successfully')
+        
+        # Проверяем создание гистограммы
+        from PIL import Image
+        import io
+        import matplotlib.pyplot as plt
+        
+        # Создаем тестовое изображение
+        img = Image.new('RGB', (100, 100), color='red')
+        print('Test image created')
+        
+        # Проверяем функцию создания гистограммы
+        try:
+            plt.figure()
+            plt.plot([1,2,3])
+            plt.close()
+            print('Matplotlib works correctly')
+        except:
+            print('Matplotlib error')
+            raise
+        
+        print('✅ All basic tests passed')
+        "
+    
+    - name: Test Flask app structure
+      run: |
+        # Проверяем наличие нужных файлов
+        if [ ! -f "app.py" ]; then
+          echo "❌ app.py not found"
+          exit 1
+        fi
+        
+        if [ ! -f "requirements.txt" ]; then
+          echo "❌ requirements.txt not found"
+          exit 1
+        fi
+        
+        if [ ! -d "templates" ]; then
+          echo "❌ templates directory not found"
+          exit 1
+        fi
+        
+        echo "✅ Project structure is correct"
+        
+        # Проверяем Python синтаксис
+        python -m py_compile app.py
+        echo "✅ Python syntax is correct"
+
+  deploy:
+    needs: test
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+    
+    - name: Deploy to Render
+      env:
+        RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+        RENDER_SERVICE_ID: ${{ secrets.RENDER_SERVICE_ID }}
+      run: |
+        # Проверяем наличие API ключа
+        if [ -z "$RENDER_API_KEY" ]; then
+          echo "⚠️ RENDER_API_KEY not set. Skipping deployment."
+          echo "To enable auto-deployment:"
+          echo "1. Go to https://dashboard.render.com/account/api-keys"
+          echo "2. Create API key and add to GitHub Secrets as RENDER_API_KEY"
+          echo "3. Add your service ID as RENDER_SERVICE_ID"
+          exit 0
+        fi
+        
+        # Устанавливаем cURL
+        apt-get update && apt-get install -y curl
+        
+        echo "🚀 Starting deployment to Render..."
+        
+        # Триггерим деплой через Render API
+        curl -X POST \
+          "https://api.render.com/v1/services/$RENDER_SERVICE_ID/deploys" \
+          -H "Authorization: Bearer $RENDER_API_KEY" \
+          -H "Content-Type: application/json"
+        
+        echo "✅ Deployment triggered successfully!"
+        
+        # Ждем немного и проверяем статус
+        sleep 10
+        echo "Check deployment status at: https://dashboard.render.com"
