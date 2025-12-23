@@ -13,9 +13,8 @@ app.secret_key = 'secret_key_123'  # можно изменить
 UPLOAD_FOLDER = 'static/uploads'
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-# Ключи reCAPTCHA (замените на свои!)
-RECAPTCHA_SITE_KEY = 'ВАШ_SITE_KEY_ЗДЕСЬ'  # пример: '6LcAbcEdAAAAAAbCDefGHIjklMNopQRsTUvWxYz0'
-RECAPTCHA_SECRET_KEY = 'ВАШ_SECRET_KEY_ЗДЕСЬ'  # пример: '6LcAbcEdAAAAAB1234567890abcdefghijklmnopqrst'
+RECAPTCHA_SITE_KEY = '6LfnMTQsAAAAANYMEHiH_a6wJOPCLPbHk_BuYhsO' 
+RECAPTCHA_SECRET_KEY = '6LfnMTQsAAAAAEvf-yDO5ttST2GQvF2NND2sUXO3'
 
 
 def create_color_histogram(img, title):
@@ -123,5 +122,6 @@ if __name__ == '__main__':
                 os.unlink(file_path)
         except:
             pass
+
 
     app.run(debug=True, host='0.0.0.0', port=5000)
