@@ -31,14 +31,12 @@ def add_watermark(img):
         font = ImageFont.truetype("arial.ttf", 36)
     except:
         try:
-            font = ImageFont.truetype("arial.ttf", 36)
+            font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 24)
         except:
             font = ImageFont.load_default()
-            font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 24)
     
     img_width, img_height = watermark_img.size
     
-    # получаем размер текста
     try:
         text_bbox = draw.textbbox((0, 0), watermark_text, font=font)
         text_width = text_bbox[2] - text_bbox[0]
@@ -49,9 +47,7 @@ def add_watermark(img):
     x = img_width - text_width - 20
     y = img_height - text_height - 20
     
-    # тень
-    draw.text((x + 2, y + 2), watermark_text, font=font, fill=(0, 0, 0, 120))
-
+    
     draw.text((x, y), watermark_text, font=font, fill=(255, 255, 255, 160))
     
     return watermark_img
@@ -60,18 +56,18 @@ def create_color_histogram(img, title):
     """Создает гистограмму распределения цветов RGB"""
     plt.figure(figsize=(8, 5))
     
-    # преобразуем изображение в numpy массив
+    # Преобразуем изображение в numpy массив
     img_array = np.array(img)
     
-    # цвета для каналов
+    # Цвета для каналов
     colors = ('red', 'green', 'blue')
     
-    # строим гистограммы для каждого канала
+    # Строим гистограммы для каждого канала
     for i, color in enumerate(colors):
         # Извлекаем данные одного канала
         channel_data = img_array[:, :, i].flatten()
         
-        # строим гистограмму
+        # Строим гистограмму
         plt.hist(channel_data, bins=50, alpha=0.7, color=color, 
                 label=f'{color.upper()} канал', density=True)
     
@@ -82,13 +78,13 @@ def create_color_histogram(img, title):
     plt.grid(True, alpha=0.3)
     plt.tight_layout()
     
-    # сохраняем в буфер
+    # Сохраняем в буфер
     buf = io.BytesIO()
     plt.savefig(buf, format='png', dpi=100)
     buf.seek(0)
     plt.close()
     
-    # кодируем в base64
+    # Кодируем в base64
     return base64.b64encode(buf.read()).decode('utf-8')
 
 def verify_captcha(recaptcha_response):
@@ -120,14 +116,14 @@ def image_to_base64(img):
 def index():
     """Главная страница с формой"""
     if request.method == 'POST':
-        # проверка капчи
+        
         recaptcha_response = request.form.get('g-recaptcha-response', '')
         
         if not verify_captcha(recaptcha_response):
             flash('Пожалуйста, подтвердите, что вы не робот')
             return render_template('index.html', site_key=RECAPTCHA_SITE_KEY)
         
-        # проверяем файл
+        # Проверяем файл
         if 'image' not in request.files:
             flash('Не выбран файл изображения')
             return render_template('index.html', site_key=RECAPTCHA_SITE_KEY)
@@ -142,7 +138,7 @@ def index():
             flash('Разрешены только файлы: PNG, JPG, JPEG, GIF')
             return render_template('index.html', site_key=RECAPTCHA_SITE_KEY)
         
-        # получаем угол поворота
+        # Получаем угол поворота
         try:
             angle = float(request.form.get('angle', 0))
         except ValueError:
@@ -152,34 +148,33 @@ def index():
         add_watermark_flag = request.form.get('watermark') == 'on'
         
         try:
-            # открываем изображение
+            # Открываем изображение
             img = Image.open(file).convert('RGB')
             
             # Уменьшаем размер для оптимизации
             if img.size[0] > 1000 or img.size[1] > 1000:
                 img.thumbnail((800, 800))
             
-            # конвертируем оригинальное изображение в base64
+            # Конвертируем оригинальное изображение в base64
             original_base64 = image_to_base64(img)
             
-            # создаем повернутое изображение
+            # Создаем повернутое изображение
             rotated_img = img.rotate(angle, expand=True)
-            rotated_base64 = image_to_base64(rotated_img)
             
-            # добавляем вотермарку если нужно
-            watermarked_base64 = None
+            # Добавляем вотермарку на повернутое изображение если нужно
+            final_rotated_img = rotated_img
             if add_watermark_flag:
-                watermarked_img = add_watermark(img)
-                watermarked_base64 = image_to_base64(watermarked_img)
+                final_rotated_img = add_watermark(rotated_img)
             
-            # создаем гистограммы
+            rotated_base64 = image_to_base64(final_rotated_img)
+            
+            # Создаем гистограммы
             original_histogram = create_color_histogram(img, 'Оригинал')
-            rotated_histogram = create_color_histogram(rotated_img, f'Повёрнуто на {angle}°')
+            rotated_histogram = create_color_histogram(final_rotated_img, f'Повёрнуто на {angle}°')
             
             return render_template('result.html',
                                  original_img=original_base64,
                                  rotated_img=rotated_base64,
-                                 watermarked_img=watermarked_base64,
                                  original_histogram=original_histogram,
                                  rotated_histogram=rotated_histogram,
                                  angle=angle,
